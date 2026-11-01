@@ -33,8 +33,8 @@ media, sets the fan and RGB LED, and shows the Pi's health.
   over an animated sky that matches the weather (stars at night, rain,
   snow, fog, lightning).
 - **Media:** any GIF, image or video from the library.
-- **Schedule:** clock at 11 PM, weather at noon; manual changes win until
-  the next switch.
+- **Schedule:** clock at 11 PM on my chosen photo, weather at noon;
+  manual changes win until the next switch.
 
 **In the control panel**
 - Switch screens; refresh the display; restart the app; reboot or shut down

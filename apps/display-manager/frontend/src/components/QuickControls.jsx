@@ -137,7 +137,7 @@ export default function QuickControls() {
                         🕒 Automatic:{" "}
                         {[...schedule]
                             .sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute))
-                            .map((entry) => `${screenLabel(entry.screen)} at ${formatTime(entry.hour, entry.minute)}`)
+                            .map((entry) => `${screenLabel(entry.screen)} at ${formatTime(entry.hour, entry.minute)}${entry.screen === "clock" ? " (on your chosen photo)" : ""}`)
                             .join(" · ")}
                         . You can still switch screens any time.
                     </p>

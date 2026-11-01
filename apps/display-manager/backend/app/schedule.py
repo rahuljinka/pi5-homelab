@@ -3,6 +3,9 @@ Daily screen switching (for example: clock at 11 PM, weather at noon).
 
 The schedule only acts at those moments, so the screen can still be
 changed by hand in between; a manual choice stays until the next switch.
+Switching to the clock also puts it on the chosen single photo (the last
+one picked with "Use this photo"), even if the slideshow was on during
+the day. If no photo has been chosen, the photo mode is left as it is.
 If the Pi is off at a switch time, that switch is skipped, not made up.
 
 Times come from SCREEN_SCHEDULE in .env and use the TZ time zone.
@@ -13,6 +16,7 @@ import time
 from datetime import datetime
 
 from . import state
+from .routes.clock import list_photos
 from .settings import SCREEN_SCHEDULE, TIMEZONE
 
 CHECK_SECONDS = 20
@@ -34,6 +38,15 @@ def due_entries(previous: datetime, now: datetime, schedule=None):
     return sorted(due, key=lambda item: item[0])
 
 
+def use_single_photo():
+    """Put the clock on the chosen single photo, if it still exists."""
+    chosen = state.clock_photo_mode["file"]
+    if chosen and chosen in list_photos():
+        state.clock_photo_mode["mode"] = "single"
+        return True
+    return False
+
+
 def _run():
     previous = datetime.now(TIMEZONE)
     while True:
@@ -41,6 +54,8 @@ def _run():
         now = datetime.now(TIMEZONE)
         for at, entry in due_entries(previous, now):
             state.current_screen["screen"] = entry["screen"]
+            if entry["screen"] == "clock":
+                use_single_photo()
             state.save()
             print(f"Schedule: switched display to {entry['screen']} at {at:%H:%M}", flush=True)
         previous = now
