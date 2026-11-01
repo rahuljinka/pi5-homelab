@@ -1,0 +1,42 @@
+# Runs on every push and pull request.
+#  - secrets: gitleaks scans the full history, then the repo's own private-information check
+#  - build:   the display manager's backend compiles and both web apps build
+name: checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: python3 scripts/check-secrets.py --all
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Backend compiles
+        run: python -m compileall -q apps/display-manager/backend/app
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Control panel builds
+        working-directory: apps/display-manager/frontend
+        run: npm ci && npm run build
+      - name: Kiosk display builds
+        working-directory: apps/display-manager/display
+        run: npm ci && npm run build

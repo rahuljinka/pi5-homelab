@@ -1,0 +1,8 @@
+# >>> kiosk autostart (pi5-homelab host/kiosk) >>>
+# On the Pi's own screen (tty1) only, start the kiosk display after the
+# automatic console login. If it ever exits, logging out makes the console
+# log in again, which starts it again.
+if [ -z "${DISPLAY:-}" ] && [ "$(tty)" = "/dev/tty1" ]; then
+    exec startx
+fi
+# <<< kiosk autostart <<<

@@ -1,0 +1,6 @@
+[Unit]
+Description=Save drive health (SMART) for the display manager's control panel
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/display-manager-drive-health @OUT@

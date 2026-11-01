@@ -1,0 +1,19 @@
+# Jellyfin: media server for my movies and shows.
+# Web app: http://<pi>:8096   Paths: .env
+name: jellyfin
+
+services:
+  jellyfin:
+    image: ghcr.io/linuxserver/jellyfin:10.11.11ubu2404-ls38
+    container_name: jellyfin
+    restart: unless-stopped
+    ports:
+      - "8096:8096"
+    environment:
+      - PUID=1000      # files are owned by my user (id -u)
+      - PGID=1000
+      - TZ=${TZ}
+    volumes:
+      - ${JELLYFIN_CONFIG:?set JELLYFIN_CONFIG in .env}:/config
+      - ${JELLYFIN_MOVIES:?set JELLYFIN_MOVIES in .env}:/data/movies
+      - ${JELLYFIN_SHOWS:?set JELLYFIN_SHOWS in .env}:/data/shows

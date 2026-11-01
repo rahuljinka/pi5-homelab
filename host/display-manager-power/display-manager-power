@@ -1,0 +1,22 @@
+#!/bin/sh
+# Acts on power requests the display manager backend drops into its
+# host-requests folder (the control panel's Reboot and Shutdown buttons).
+# Only "reboot" and "poweroff" do anything; anything else is logged and removed.
+# Installed to /usr/local/sbin by install.sh and run by display-manager-power.service.
+set -eu
+dir="$1"
+for request in "$dir"/*; do
+    [ -e "$request" ] || continue
+    name=$(basename "$request")
+    rm -f "$request"
+    case "$name" in
+        reboot)
+            logger -t display-manager-power "Reboot requested from the control panel"
+            systemctl reboot ;;
+        poweroff)
+            logger -t display-manager-power "Shutdown requested from the control panel"
+            systemctl poweroff ;;
+        *)
+            logger -t display-manager-power "Ignored unknown request: $name" ;;
+    esac
+done

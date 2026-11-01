@@ -1,0 +1,21 @@
+#!/bin/bash
+# Kiosk session: started by startx on the Pi's own screen (see profile-snippet).
+# Turns off screen blanking, rotates the 800x480 panel to portrait, hides the
+# mouse pointer, and opens the display manager full screen in Chromium.
+
+xset s off
+xset -dpms
+xset s noblank
+xrandr --output HDMI-1 --rotate left
+
+unclutter -idle 0 &
+openbox-session &
+
+# --app gives a window without a tab strip; a normal browser window has a
+# ~500px minimum width, which overflowed this 480px-wide portrait screen.
+chromium \
+--kiosk \
+--app=http://localhost:5174 \
+--noerrdialogs \
+--disable-infobars \
+--disable-session-crashed-bubble

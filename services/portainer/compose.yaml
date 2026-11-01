@@ -1,0 +1,15 @@
+# Portainer: web UI for looking after Docker containers.
+# Web UI: https://<pi>:9443 (self-signed certificate, so the browser warns once)
+# It controls Docker, so it's HTTPS only and reachable only at home / over Tailscale.
+name: portainer
+
+services:
+  portainer:
+    image: portainer/portainer-ce:2.39.4
+    container_name: portainer
+    restart: always
+    ports:
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${PORTAINER_DATA:?set PORTAINER_DATA in .env}:/data

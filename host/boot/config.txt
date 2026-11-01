@@ -1,0 +1,12 @@
+# The lines I add to /boot/firmware/config.txt on top of Raspberry Pi OS's
+# defaults. Append them (sudo nano /boot/firmware/config.txt), then reboot.
+
+[pi5]
+# Hardware PWM on GPIO 18 (physical pin 12) for the fan, as pwmchip0 channel 2.
+dtoverlay=pwm-2chan,pin=18,func=2
+
+[all]
+# SPI0 for the WS2812 LED's data line on GPIO 10 (physical pin 19).
+# spi0-1cs uses a single chip-select, freeing GPIO 7.
+dtparam=spi=on
+dtoverlay=spi0-1cs

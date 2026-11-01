@@ -1,0 +1,13 @@
+[Unit]
+Description=Homelab host firewall (home network + Tailscale only)
+Wants=network-pre.target
+Before=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/homelab-firewall.nft
+ExecStop=/usr/sbin/nft delete table inet homelab_fw
+
+[Install]
+WantedBy=multi-user.target

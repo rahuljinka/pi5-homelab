@@ -1,0 +1,55 @@
+"""
+Daily screen switching (for example: clock at 11 PM, weather at noon).
+
+The schedule only acts at those moments, so the screen can still be
+changed by hand in between; a manual choice stays until the next switch.
+If the Pi is off at a switch time, that switch is skipped, not made up.
+
+Times come from SCREEN_SCHEDULE in .env and use the TZ time zone.
+"""
+
+import threading
+import time
+from datetime import datetime
+
+from . import state
+from .settings import SCREEN_SCHEDULE, TIMEZONE
+
+CHECK_SECONDS = 20
+
+
+def due_entries(previous: datetime, now: datetime, schedule=None):
+    """Scheduled switches whose time fell in (previous, now], oldest first."""
+    due = []
+    # Look at both dates in case the interval spans midnight.
+    for day in sorted({previous.date(), now.date()}):
+        for entry in schedule if schedule is not None else SCREEN_SCHEDULE:
+            at = datetime.combine(
+                day,
+                datetime.min.time().replace(hour=entry["hour"], minute=entry["minute"]),
+                tzinfo=TIMEZONE,
+            )
+            if previous < at <= now:
+                due.append((at, entry))
+    return sorted(due, key=lambda item: item[0])
+
+
+def _run():
+    previous = datetime.now(TIMEZONE)
+    while True:
+        time.sleep(CHECK_SECONDS)
+        now = datetime.now(TIMEZONE)
+        for at, entry in due_entries(previous, now):
+            state.current_screen["screen"] = entry["screen"]
+            state.save()
+            print(f"Schedule: switched display to {entry['screen']} at {at:%H:%M}", flush=True)
+        previous = now
+
+
+def start():
+    if not SCREEN_SCHEDULE:
+        print("Schedule: none set.", flush=True)
+        return
+    summary = ", ".join(f"{e['screen']} at {e['hour']:02d}:{e['minute']:02d}" for e in SCREEN_SCHEDULE)
+    print(f"Schedule running: {summary} ({TIMEZONE})", flush=True)
+    threading.Thread(target=_run, daemon=True).start()

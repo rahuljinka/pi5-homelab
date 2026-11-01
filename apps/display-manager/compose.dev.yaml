@@ -1,0 +1,49 @@
+# Display manager: development stack. Runs beside production without
+# touching it: its own project name, ports, data folder and no hardware.
+# Edits to backend/app, display/src and frontend/src reload automatically.
+
+name: display-manager-dev
+
+services:
+  backend:
+    build: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file: .env
+    environment:
+      APP_ENV: dev
+      AUTH_DISABLED: "1"        # no login in dev
+      SIMULATE_HARDWARE: "1"    # fan, LED, reboot and shutdown are pretend
+      SCREEN_SCHEDULE: ""       # no automatic screen switching
+      DRIVES: "Dev data folder=/app/data"
+    volumes:
+      - ./backend/app:/srv/app  # live code
+      - ./data-dev:/app/data
+      - ./data-dev/media:/app/media
+      - ./data-dev/clock-photos:/app/clock-photos
+    # No Docker access in dev: the container list is empty.
+
+  display:
+    image: node:20
+    working_dir: /app
+    command: sh -c "npm ci --no-audit --no-fund && npx vite --port 5174"
+    volumes:
+      - ./display:/app
+      - display-node-modules:/app/node_modules
+    ports:
+      - "5175:5174"
+    depends_on: [backend]
+
+  panel:
+    image: node:20
+    working_dir: /app
+    command: sh -c "npm ci --no-audit --no-fund && npx vite --port 3000"
+    volumes:
+      - ./frontend:/app
+      - panel-node-modules:/app/node_modules
+    ports:
+      - "3100:3000"
+    depends_on: [backend]
+
+volumes:
+  display-node-modules:
+  panel-node-modules:

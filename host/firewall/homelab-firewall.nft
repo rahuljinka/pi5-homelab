@@ -1,0 +1,49 @@
+#!/usr/sbin/nft -f
+# Host firewall: only my home network and Tailscale may connect to the Pi.
+#
+# Lives in its own table, so it never touches the rules Docker and Tailscale
+# manage. A packet must pass every table, so a drop here is final.
+# @LAN_SUBNET@ and @LAN_IF@ are filled in by install.sh.
+
+table inet homelab_fw
+delete table inet homelab_fw
+
+table inet homelab_fw {
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        iif lo accept
+        ct state established,related accept
+        ct state invalid drop
+
+        # IPv6 needs ICMPv6 (neighbour discovery, router adverts); allow ping too.
+        meta l4proto ipv6-icmp accept
+        meta l4proto icmp accept
+
+        # DHCP replies (IPv4) for the Pi's own address.
+        udp sport 67 udp dport 68 accept
+
+        # Home network: IPv4 subnet, plus IPv6 link-local (mDNS, DHCPv6, discovery).
+        ip saddr @LAN_SUBNET@ counter accept comment "home network"
+        ip6 saddr fe80::/10 accept
+        # mDNS (".local" names) from devices on the home network over IPv6.
+        iifname "@LAN_IF@" udp dport 5353 accept
+
+        # Tailscale: anything arriving over the tunnel, plus its direct-connection port.
+        iifname "tailscale0" counter accept comment "tailscale"
+        iifname "@LAN_IF@" udp dport 41641 accept
+
+        # Everything else is dropped (counted, so it can be checked).
+        counter comment "dropped inbound"
+    }
+
+    # Docker-published ports are forwarded to containers rather than delivered
+    # to the Pi, so they need the same rule here. Replies to containers'
+    # own outgoing connections are "established" and pass.
+    chain forward {
+        type filter hook forward priority filter; policy accept;
+
+        iifname "@LAN_IF@" ct state new ip saddr != @LAN_SUBNET@ counter drop comment "new connection from outside the LAN to a container"
+        iifname "@LAN_IF@" ct state new meta nfproto ipv6 counter drop comment "new IPv6 connection to a container"
+    }
+}

@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""
+Reads SMART health from every drive and saves a summary for the display
+manager's control panel (System Information -> Drive Health).
+
+The app runs without access to the drives, so this runs on the Pi as root
+from drive-health.timer (every 30 minutes) and writes
+<repo>/apps/display-manager/data/drive-health.json.
+
+A drive that is asleep isn't woken up (smartctl -n standby); its last
+reading is kept and marked "asleep". No serial numbers are saved.
+"""
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from datetime import datetime, timezone
+
+
+def smartctl(*args):
+    result = subprocess.run(["smartctl", "-j", *args], capture_output=True, text=True)
+    try:
+        return result.returncode, json.loads(result.stdout or "{}")
+    except ValueError:
+        return result.returncode, {}
+
+
+def summarize(device, dtype, data):
+    nvme = data.get("nvme_smart_health_information_log") or {}
+    attrs = {a["id"]: a["raw"]["value"] for a in data.get("ata_smart_attributes", {}).get("table", [])}
+    tests = (data.get("ata_smart_self_test_log", {}).get("standard", {}).get("table")
+             or data.get("nvme_self_test_log", {}).get("table") or [])
+    last = tests[0] if tests else None
+    return {
+        "device": device,
+        "type": "nvme" if dtype == "nvme" else "hdd" if data.get("rotation_rate") else "ssd",
+        "model": data.get("model_name") or data.get("model_family") or device,
+        "capacity_bytes": data.get("user_capacity", {}).get("bytes") or data.get("nvme_total_capacity"),
+        "passed": data.get("smart_status", {}).get("passed"),
+        "temperature_c": data.get("temperature", {}).get("current"),
+        "power_on_hours": data.get("power_on_time", {}).get("hours"),
+        "power_cycles": data.get("power_cycle_count"),
+        "reallocated_sectors": attrs.get(5),
+        "pending_sectors": attrs.get(197),
+        "uncorrectable_sectors": attrs.get(198),
+        "wear_percent": nvme.get("percentage_used"),
+        "media_errors": nvme.get("media_errors"),
+        "available_spare_percent": nvme.get("available_spare"),
+        "last_self_test": None if not last else {
+            "type": (last.get("type") or {}).get("string") or (last.get("self_test_code") or {}).get("string"),
+            "result": (last.get("status") or last.get("self_test_result") or {}).get("string"),
+            "passed": (last.get("status") or {}).get("passed",
+                      (last.get("self_test_result") or {}).get("value") == 0),
+            "at_power_on_hours": last.get("lifetime_hours") or last.get("power_on_hours"),
+        },
+        "asleep": False,
+    }
+
+
+def main(out_path):
+    previous = {}
+    try:
+        previous = {d["device"]: d for d in json.load(open(out_path)).get("drives", [])}
+    except (OSError, ValueError, KeyError):
+        pass
+
+    _, scan = smartctl("--scan-open")
+    drives = []
+    for dev in scan.get("devices", []):
+        name, dtype = dev["name"], dev.get("type", "auto")
+        code, data = smartctl("-a", "-n", "standby", "-d", dtype, name)
+        if code & 2 and not data.get("smart_status"):  # asleep: keep the last reading
+            entry = dict(previous.get(name, {"device": name, "model": name}))
+            entry["asleep"] = True
+        else:
+            entry = summarize(name, dtype, data)
+        drives.append(entry)
+
+    report = {"checked_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "drives": drives}
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(out_path))
+    with os.fdopen(fd, "w") as f:
+        json.dump(report, f, indent=2)
+    os.chmod(tmp, 0o644)
+    os.replace(tmp, out_path)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])

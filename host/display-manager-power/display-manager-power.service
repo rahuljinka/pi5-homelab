@@ -1,0 +1,6 @@
+[Unit]
+Description=Handle a reboot/shutdown request from the display manager
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/display-manager-power @REQUEST_DIR@

@@ -1,0 +1,23 @@
+# Pi-hole: network-wide ad and tracker blocking (DNS) for my home network.
+# Admin page: http://<pi>:8081/admin   Settings and password: .env
+name: pihole
+
+services:
+  pihole:
+    image: pihole/pihole:2026.07.2
+    container_name: pihole
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "53:53/tcp"     # DNS
+      - "53:53/udp"
+      - "8081:80/tcp"   # admin page
+    environment:
+      TZ: ${TZ}
+      FTLCONF_dns_upstreams: "1.1.1.1;8.8.8.8"   # Cloudflare, then Google
+      FTLCONF_dns_listeningMode: "ALL"
+      FTLCONF_webserver_api_password: ${PIHOLE_PASSWORD:?set PIHOLE_PASSWORD in .env}
+    volumes:
+      - ${PIHOLE_DATA:?set PIHOLE_DATA in .env}/etc-pihole:/etc/pihole
+      - ${PIHOLE_DATA}/etc-dnsmasq.d:/etc/dnsmasq.d

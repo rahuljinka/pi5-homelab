@@ -1,0 +1,47 @@
+# Everything private stays on the Pi. See docs/publishing-rules.md.
+
+# Secrets and personal settings (only the fake *.example files are published)
+.env
+*.env
+!.env.example
+!*.env.example
+
+# My private notes and runbook (real hostnames, IPs, paths)
+private/
+
+# App data and media: saved settings, photo cache, GIFs, personal photos
+apps/*/data/
+apps/*/data-dev/
+apps/*/media/
+
+# Backups, dumps and archives
+*.bak
+*.backup
+*-inspect.json
+*.bundle
+*.tgz
+*.tar.gz
+
+# Images and video anywhere, except published screenshots in docs/images
+*.gif
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.heif
+*.webp
+*.mp4
+*.mov
+!docs/images/**
+!apps/*/docs/images/**
+
+# Build output and dependencies
+node_modules/
+dist/
+__pycache__/
+*.pyc
+
+# Editors and OS files
+.idea/
+.vscode/
+.DS_Store

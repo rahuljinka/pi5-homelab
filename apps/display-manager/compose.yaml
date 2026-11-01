@@ -1,0 +1,63 @@
+# Display manager: production stack.
+#
+# Deploy:   ./scripts/deploy.sh display-manager   (from the repo root)
+# Settings: .env next to this file (copy .env.example and fill it in)
+#
+# Exposure: only the control panel is published on the network (port 3000).
+# The kiosk display is published on 127.0.0.1 for the Pi's own browser, and
+# the backend isn't published at all: both web servers reach it internally.
+
+name: display-manager
+
+services:
+  backend:
+    build: ./backend
+    container_name: display-manager-backend
+    hostname: ${PI_HOSTNAME:-raspberrypi}   # shown in System Information
+    env_file: .env
+    environment:
+      APP_ENV: prod
+      DOCKER_HOST: tcp://docker-proxy:2375  # read-only Docker API, see docker-proxy
+      DRIVES: "NVMe SSD=/drives/system;Hard Drive=/drives/data"
+    devices:
+      - /dev/spidev0.0:/dev/spidev0.0       # WS2812 LED (SPI0)
+    volumes:
+      - /sys:/sys                           # fan PWM (/sys/class/pwm)
+      - ./data:/app/data                    # saved settings, login, photo cache, power requests
+      - ./media/uploads:/app/media          # Media Library
+      - ./media/clock-photos:/app/clock-photos
+      # Drive usage: one folder on each drive, read-only. If the data drive
+      # isn't mounted, Docker recreates its folder on the system drive and
+      # the panel shows "Not mounted".
+      - ./data:/drives/system:ro
+      - ${DATA_DISK:?set DATA_DISK in .env}/.pi5-homelab:/drives/data:ro
+    restart: unless-stopped
+
+  # Lets the backend list containers without giving it the Docker socket.
+  # Only GET requests to /containers are allowed (POST is off by default).
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    container_name: display-manager-docker-proxy
+    environment:
+      CONTAINERS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+  display:
+    build: ./display
+    container_name: display-manager-display
+    environment:
+      DISPLAY_KEY: ${DISPLAY_KEY:?set DISPLAY_KEY in .env}
+    ports:
+      - "127.0.0.1:5174:5174"               # the kiosk browser on the Pi only
+    depends_on: [backend]
+    restart: unless-stopped
+
+  panel:
+    build: ./frontend
+    container_name: display-manager-panel
+    ports:
+      - "${PANEL_PORT:-3000}:3000"          # LAN + Tailscale (the firewall blocks the rest)
+    depends_on: [backend]
+    restart: unless-stopped

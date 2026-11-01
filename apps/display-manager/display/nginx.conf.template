@@ -1,0 +1,23 @@
+# Kiosk display web server (production). Only reachable from the Pi itself
+# (compose publishes it on 127.0.0.1). ${DISPLAY_KEY} is filled in from .env
+# when the container starts; it lets the backend recognise the display.
+server {
+    listen 5174;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    location /api/ {
+        proxy_pass http://backend:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Display-Key "${DISPLAY_KEY}";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Never cache the page itself, so a new build is picked up on reload.
+    location = /index.html {
+        add_header Cache-Control "no-store";
+    }
+}

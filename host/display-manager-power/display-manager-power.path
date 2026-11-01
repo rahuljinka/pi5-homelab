@@ -1,0 +1,9 @@
+# Watches the display manager's power-request folder (see install.sh).
+[Unit]
+Description=Watch for reboot/shutdown requests from the display manager
+
+[Path]
+DirectoryNotEmpty=@REQUEST_DIR@
+
+[Install]
+WantedBy=multi-user.target

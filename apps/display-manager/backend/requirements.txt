@@ -1,0 +1,11 @@
+# Pinned to the versions verified on the Pi. Upgrade deliberately.
+fastapi==0.162.0
+uvicorn==0.54.0
+python-multipart==0.0.33
+psutil==7.2.2
+docker==7.2.0
+requests==2.34.2
+pillow==13.0.0
+pillow_heif==1.8.1
+rpi5-ws2812==0.1.3
+spidev==3.8
