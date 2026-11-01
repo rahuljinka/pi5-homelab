@@ -6,6 +6,9 @@ changed by hand in between; a manual choice stays until the next switch.
 Switching to the clock also puts it on the chosen single photo (the last
 one picked with "Use this photo"), even if the slideshow was on during
 the day. If no photo has been chosen, the photo mode is left as it is.
+Switching away from the clock (to weather at noon) turns the slideshow back
+on, so picking the clock by hand during the day shows the slideshow. The
+chosen photo is remembered for the next night.
 If the Pi is off at a switch time, that switch is skipped, not made up.
 
 Times come from SCREEN_SCHEDULE in .env and use the TZ time zone.
@@ -47,16 +50,24 @@ def use_single_photo():
     return False
 
 
+def apply(entry):
+    """Make one scheduled switch."""
+    state.current_screen["screen"] = entry["screen"]
+    if entry["screen"] == "clock":
+        use_single_photo()
+    else:
+        # Night is over: back to the slideshow for any clock use by hand.
+        state.clock_photo_mode["mode"] = "slideshow"
+    state.save()
+
+
 def _run():
     previous = datetime.now(TIMEZONE)
     while True:
         time.sleep(CHECK_SECONDS)
         now = datetime.now(TIMEZONE)
         for at, entry in due_entries(previous, now):
-            state.current_screen["screen"] = entry["screen"]
-            if entry["screen"] == "clock":
-                use_single_photo()
-            state.save()
+            apply(entry)
             print(f"Schedule: switched display to {entry['screen']} at {at:%H:%M}", flush=True)
         previous = now
 

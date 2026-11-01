@@ -235,7 +235,8 @@ export default function ClockPhotos() {
                         ? (mode.file
                             ? <>Staying on <strong>{mode.file}</strong>. Press <strong>Use this photo</strong> on another photo to change it.</>
                             : <>Press <strong>Use this photo</strong> on a photo to keep the clock on it.</>)
-                        : <>A new photo every 10 minutes. <strong>Show now</strong> jumps to a photo, then the slideshow continues.</>}
+                        : <>A new photo every 10 minutes. <strong>Show now</strong> jumps to a photo, then the slideshow continues.
+                            {mode.file && photos?.includes(mode.file) && <> At night the schedule shows <strong>{mode.file}</strong>; switch to Single photo to pick another.</>}</>}
                 </p>
 
                 <div
