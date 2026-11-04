@@ -1,9 +1,13 @@
 """
 Fan and LED control.
 
-Fan:  PWM fan on GPIO 18 (physical pin 12), Linux PWM chip 0 channel 2,
+Two 4010 RGB PWM fans, each with a WS2812 LED built in. Their PWM wires
+are joined with a 2-to-1 cable, and so are their LED data wires, so the Pi
+drives them as one fan and one LED: same speed, same colour.
+
+Fan:  PWM on GPIO 18 (physical pin 12), Linux PWM chip 0 channel 2,
       driven at 25 kHz through the kernel's /sys/class/pwm files.
-LED:  one WS2812 RGB LED on GPIO 10 (physical pin 19), driven over SPI0.0.
+LED:  WS2812 data on GPIO 10 (physical pin 19), driven over SPI0.0.
 
 Both need the matching lines in /boot/firmware/config.txt (see
 host/boot/config.txt). The container gets /sys and /dev/spidev0.0 only,
@@ -32,7 +36,7 @@ SPI_BUS = 0
 SPI_DEVICE = 0
 LED_GPIO = 10
 LED_PHYSICAL_PIN = 19
-LED_COUNT = 1
+LED_COUNT = 1   # both fans' LEDs are on the same line in parallel, so each is "LED 1"
 
 _fan_speed = 0.0
 _led_color = (0, 0, 0)    # the chosen color, before brightness

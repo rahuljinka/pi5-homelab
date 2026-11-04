@@ -24,6 +24,9 @@ flowchart LR
     backend -->|"GET /containers only"| proxy["Docker API proxy"]
     proxy --> docker[("Docker")]
     backend -->|"/sys PWM, /dev/spidev0.0"| hw["Fan + LED"]
+    backend -->|"internal HTTP"| ble["Bluetooth bridge<br/>(user nobody)"]
+    ble -->|"BlueZ over D-Bus"| strip["LED strip"]
+    backend -->|"UDP 4003 / replies on 4002"| govee["Govee lamp<br/>(LAN API)"]
     backend -->|"request file"| power["Power helper<br/>(host, systemd)"]
     health["Drive health job<br/>(host, systemd)"] -->|"drive-health.json"| backend
 ```
@@ -40,7 +43,9 @@ flowchart LR
   needs. The kiosk port is bound to 127.0.0.1, so only the Pi's own browser
   can use it.
 - **No privileged containers.** The backend gets the fan's `/sys` files and
-  the LED's SPI device, nothing else. It lists containers through a proxy
+  the LED's SPI device, nothing else. The LED strip is reached through a
+  separate Bluetooth bridge that runs as `nobody` and talks to BlueZ over
+  D-Bus, so the backend never touches the system bus. It lists containers through a proxy
   that only allows `GET /containers`.
 - **Host actions go through tiny helpers.** Reboot and Shutdown drop a file
   into `data/host-requests/`; a systemd path unit on the Pi runs a script

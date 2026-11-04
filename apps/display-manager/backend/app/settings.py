@@ -74,6 +74,25 @@ WEATHER_LOCATION_NAME = _env("WEATHER_LOCATION_NAME", "Weather")
 WEATHER_UNITS = _env("WEATHER_UNITS", "fahrenheit")  # or "celsius"
 WEATHER_CACHE_SECONDS = 600
 
+# ---- Bluetooth LED strip -----------------------------------------------------
+
+# The strip controller's Bluetooth address. Empty means no strip.
+LED_STRIP_ADDRESS = _env("LED_STRIP_ADDRESS")
+# The ble-bridge service on the internal Docker network.
+LED_STRIP_BRIDGE_URL = _env("LED_STRIP_BRIDGE_URL", "http://ble-bridge:8100")
+
+# ---- Govee lights (LAN API) ----------------------------------------------------
+
+# "Name=ip;Name=ip". Empty means none. See govee.py.
+GOVEE_LIGHTS = [
+    {"name": name.strip(), "ip": ip.strip()}
+    for name, _, ip in (
+        item.partition("=")
+        for item in _env("GOVEE_LIGHTS").split(";")
+        if "=" in item
+    )
+]
+
 # ---- Access -------------------------------------------------------------------
 
 # Shared secret the display's web server adds to every request it forwards.

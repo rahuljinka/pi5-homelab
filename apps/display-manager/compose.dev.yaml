@@ -25,6 +25,8 @@ services:
   display:
     image: node:20
     working_dir: /app
+    environment:
+      DEV_HOSTS: ${DEV_HOSTS:-}   # host names the dev server accepts (see vite.config.js)
     command: sh -c "npm ci --no-audit --no-fund && npx vite --port 5174"
     volumes:
       - ./display:/app
@@ -36,6 +38,8 @@ services:
   panel:
     image: node:20
     working_dir: /app
+    environment:
+      DEV_HOSTS: ${DEV_HOSTS:-}   # host names the dev server accepts (see vite.config.js)
     command: sh -c "npm ci --no-audit --no-fund && npx vite --port 3000"
     volumes:
       - ./frontend:/app

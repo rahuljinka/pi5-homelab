@@ -42,8 +42,14 @@ media, sets the fan and RGB LED, and shows the Pi's health.
 - System information: CPU, memory, temperature, uptime, usage per drive.
 - **Drive health** from SMART: status, temperature, hours, bad sectors or
   wear, last self-test.
-- Docker container list.
+- Docker container list, and a list of every web page the Pi serves with
+  links and whether each is up.
 - Fan speed and LED colour/brightness.
+- Bluetooth LED strip: on/off, colour and brightness.
+- Govee Wi-Fi lights over the LAN (no cloud): on/off, colour, white
+  temperature and brightness, showing each light's real state.
+- Light sync: one colour (or white temperature) and brightness for every
+  light at once.
 - Media library and clock photo uploads (including straight from an iPhone).
 - Light, dark, AMOLED, or follow the device.
 
@@ -54,6 +60,7 @@ media, sets the fan and RGB LED, and shows the Pi's health.
 | [`backend/`](backend/) | Python 3.12, FastAPI, Pillow (+ HEIF), psutil |
 | [`display/`](display/) | React 19 + Vite, served by nginx; the kiosk page |
 | [`frontend/`](frontend/) | React 19 + Vite, served by nginx; the control panel |
+| [`ble-bridge/`](ble-bridge/) | Python, bleak; owns the Bluetooth connection to the LED strip |
 | Hardware | Fan via the kernel's PWM interface, WS2812 LED over SPI |
 
 ```
@@ -61,8 +68,11 @@ backend/app/
   main.py       builds the app, wires routes and startup
   settings.py   every setting, read from .env
   auth.py       panel login, sessions, the display's restricted key
-  state.py      what survives a restart (screen, photo mode, fan, LED)
+  state.py      what survives a restart (screen, photo mode, fan, LEDs)
   hardware.py   fan PWM and WS2812 LED, with a simulated mode for dev
+  strip.py      Bluetooth LED strip settings, sent through ble-bridge
+  govee.py      Govee lights over the LAN API (UDP), simulated in dev
+  lights.py     light sync: one colour for every light, in parallel
   schedule.py   daily screen switching
   routes/       screen, system, hardware, media, clock, weather
 ```
@@ -73,13 +83,17 @@ The interactive API reference is served at `/api/docs` once logged in.
 
 - The backend isn't published on the network. The panel's and the kiosk's
   nginx forward `/api` to it internally.
+- The backend publishes one UDP port, 4002, where Govee lights send status
+  replies; anything not from a configured light is ignored.
 - The panel requires a login (scrypt-hashed password, HttpOnly SameSite
   cookie). Changes also need an `X-Requested-With` header, so other
   websites can't drive it through my browser.
 - The kiosk is reachable only from the Pi itself and uses a shared key that
   allows read-only calls only.
 - No privileged containers: the backend gets the fan's `/sys` files and the
-  LED's SPI device. It lists containers through a proxy that allows only
+  LED's SPI device. The Bluetooth LED strip is driven by a separate,
+  unpublished bridge container running as `nobody` with only the D-Bus
+  socket (BlueZ allows any user Bluetooth and nothing else). It lists containers through a proxy that allows only
   that one read.
 - Reboot and shutdown go through a host helper that can do nothing else
   ([`host/display-manager-power/`](../../host/display-manager-power/)).

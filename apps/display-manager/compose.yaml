@@ -6,6 +6,8 @@
 # Exposure: only the control panel is published on the network (port 3000).
 # The kiosk display is published on 127.0.0.1 for the Pi's own browser, and
 # the backend isn't published at all: both web servers reach it internally.
+# The Bluetooth bridge isn't published either; only the backend calls it.
+# The backend publishes one UDP port, 4002, for Govee lights' status replies.
 
 name: display-manager
 
@@ -21,6 +23,11 @@ services:
       DRIVES: "NVMe SSD=/drives/system;Hard Drive=/drives/data"
     devices:
       - /dev/spidev0.0:/dev/spidev0.0       # WS2812 LED (SPI0)
+    ports:
+      # Govee lights send status replies to this port on the Pi (see
+      # backend/app/govee.py). The backend ignores anything that isn't
+      # from a configured light; the firewall limits it to the home network.
+      - "4002:4002/udp"
     volumes:
       - /sys:/sys                           # fan PWM (/sys/class/pwm)
       - ./data:/app/data                    # saved settings, login, photo cache, power requests
@@ -31,6 +38,21 @@ services:
       # the panel shows "Not mounted".
       - ./data:/drives/system:ro
       - ${DATA_DISK:?set DATA_DISK in .env}/.pi5-homelab:/drives/data:ro
+    restart: unless-stopped
+
+  # Bluetooth LED strip. Talks to the host's BlueZ over D-Bus as an
+  # unprivileged user (BlueZ's policy lets any user use Bluetooth, and the
+  # rest of the system bus is closed to it). Reached only by the backend.
+  ble-bridge:
+    build: ./ble-bridge
+    container_name: display-manager-ble-bridge
+    environment:
+      LED_STRIP_ADDRESS: ${LED_STRIP_ADDRESS:-}
+    volumes:
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
 
   # Lets the backend list containers without giving it the Docker socket.

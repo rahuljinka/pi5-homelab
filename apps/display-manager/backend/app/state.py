@@ -2,8 +2,10 @@
 Runtime state, and saving it so it survives a restart.
 
 Saved to data/state.json: the selected screen, the Media screen's file,
-the clock photo mode, and the fan and LED settings (which are re-applied
-to the hardware on startup).
+the clock photo mode, the fan and LED settings (which are re-applied
+to the hardware on startup) and the Bluetooth LED strip settings (shown
+again after a restart, but not re-sent; see strip.py), and the light sync
+settings (also not re-sent).
 
 Not saved: what the display reports it is showing, and "show this photo
 now" requests. The display re-reports within a few seconds of a restart.
@@ -13,7 +15,7 @@ import json
 import os
 import time
 
-from . import hardware
+from . import hardware, lights, strip
 from .settings import DATA_DIR
 
 STATE_FILE = os.path.join(DATA_DIR, "state.json")
@@ -38,6 +40,8 @@ def save():
         "fan_speed": hardware.get_fan_speed(),
         "led_color": hardware.get_led_color(),
         "led_brightness": hardware.get_led_brightness(),
+        "strip": strip.saved(),
+        "light_sync": lights.saved(),
         "clock_photo_mode": clock_photo_mode["mode"],
         "clock_photo_file": clock_photo_mode["file"],
     }
@@ -80,3 +84,16 @@ def restore():
             hardware.set_led_brightness(state["led_brightness"])
     except Exception as e:
         print(f"Could not restore LED: {e}", flush=True)
+
+    try:
+        saved_strip = state.get("strip")
+        if saved_strip:
+            strip.restore(saved_strip["on"], saved_strip["color"], saved_strip["brightness"])
+    except Exception as e:
+        print(f"Could not restore LED strip settings: {e}", flush=True)
+
+    try:
+        if state.get("light_sync"):
+            lights.restore(state["light_sync"])
+    except Exception as e:
+        print(f"Could not restore light sync settings: {e}", flush=True)

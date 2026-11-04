@@ -30,8 +30,8 @@ managed by OpenMediaVault and reachable only at home or over Tailscale.
 | System drive | Crucial P3 500 GB NVMe SSD on a Pimoroni NVMe Base |
 | Data drive | WD Elements Portable 500 GB (2.5" 5400 rpm) over USB |
 | Display | Waveshare 3.5" HDMI LCD, driven at 800×480 and rotated to portrait |
-| Cooling | 4-pin PWM fan on GPIO 18, speed set from the control panel |
-| Light | One WS2812 RGB LED on SPI0 (GPIO 10) |
+| Cooling | 2 × 4010 RGB PWM fans (5 V, 5500 rpm) sharing GPIO 18, speed set from the control panel |
+| Light | The fans' built-in WS2812 RGB LEDs, sharing SPI0 (GPIO 10), plus a Bluetooth LE LED strip and a Govee Wi-Fi table lamp |
 | OS | Raspberry Pi OS (Debian 13 "trixie"), 64-bit |
 
 Wiring and boot settings: [docs/hardware.md](docs/hardware.md).

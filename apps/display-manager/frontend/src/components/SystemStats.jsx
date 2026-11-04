@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card, ProgressBar, SectionHeader, Collapsible } from "./ui";
 import DockerStats, { isRunning } from "./DockerStats";
 import DriveHealth, { driveHealthSummary } from "./DriveHealth";
+import WebPages, { webPagesSummary } from "./WebPages";
 
 import { API as API_URL, apiFetch } from "../api";
 
@@ -153,6 +154,10 @@ export default function SystemStats() {
 
                     <Collapsible title="Docker Containers" summary={containerSummary}>
                         <DockerStats containers={containers} />
+                    </Collapsible>
+
+                    <Collapsible title="Web Pages" summary={webPagesSummary(containers)}>
+                        <WebPages containers={containers} />
                     </Collapsible>
                 </div>
             </Card>
